@@ -1,0 +1,105 @@
+log file
+
+
+--------------
+| 01-11-2023 |
+ ------------
+
+
+-- Procedures --
+
+- checked for duplicate records
+- checked for misspelled station names
+- column names are clean
+- formats are correct
+ 
+
+
+-- Added --
+
+- clean bikes function
+
+
+
+-- Modified --
+
+
+
+-- Removed --
+- removed records where there were null values in start station and end station
+
+
+--------------
+| 01-13-2023 |
+ ------------
+
+-- Procedures --
+
+- checked if end times are greater than start times
+- checked if rideable bike types are valid
+- checked for null and missing ride ids
+- checked if longitude and latitude for values were null or missing
+
+
+-- Added --
+
+
+
+-- Modified --
+- put all dec, nov, oct, and aug records in one dataset in database
+- added these procedures to clean_bikes
+
+
+-- Removed --
+- removed records where there is no start station and no end_station
+- removed records where there were the start time was equal to end time
+- removed records where start time or end time was not in the correct time period
+
+--------------
+| 01-14-2023 |
+ ------------
+
+-- Added --
+- column for month
+- column for weekday
+- column for duration 
+
+
+
+-- Modified --
+- changed duration from seconds to minutes
+- changed clean_bikes to add these columns and filter duration
+
+
+
+-- Removed --
+- removed records with 0 minute duration
+
+--------------
+| 01-17-2023 |
+ ------------
+
+
+-- Added --
+
+- new files:
+	all_trips.csv - file with all bike trips
+	q1_trips.csv - file with trips from january to march
+	q2_trips.csv - file with trips from april to june
+	q3_trips.csv - file with trips from july to september
+	q4_trips.csv - file with trips from october to december
+
+
+-- Modified --
+
+
+
+
+
+
+
+
+
+
+
+

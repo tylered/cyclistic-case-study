@@ -1,0 +1,159 @@
+---
+title: "Analysis of Cyclistic Riders"
+output: html_notebook
+---
+
+Installing the tidyverse and lubridate packages for data manipulation.
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+The funcion clean_bikes will be created to clean the data.
+
+```{r}
+clean_bikes <- function(x) {
+  file <- read_csv(x)
+  file_df <- as.data.frame(file)
+  
+  # removes duplicates
+  file_df <- file_df %>% distinct() 
+  
+  # add a column for trip duration
+  file_df$duration <- difftime(file_df$ended_at, file_df$started_at, units="mins")
+  
+  # filter table where there the data is incomplete - no start station, end station name
+  # rideable type, and duration where it is longers than a minute and less than 12 hours
+  
+  file_df = file_df %>% 
+    filter(!is.na(start_station_name)) %>% 
+    filter(!is.na(end_station_name)) %>% 
+    filter(rideable_type == 'docked_bike' | rideable_type == 'electric_bike' | rideable_type == 'classic_bike') %>%
+    filter(duration > 1 & duration <= 720)
+  
+  # adding a column for the day of week and hour the trips started
+  file_df$weekday <- weekdays(file_df$started_at)
+  file_df$hour <- hour(file_df$started_at)
+  
+  return(file_df)
+}
+```
+
+Using the clean_bikes function, we will import the trip data for all months in 2022:
+
+```{r}
+
+jan_df <- clean_bikes('/202201-divvy-tripdata.csv')
+feb_df <- clean_bikes('/202202-divvy-tripdata.csv')
+mar_df <- clean_bikes('/202203-divvy-tripdata.csv')
+apr_df <- clean_bikes('/202204-divvy-tripdata.csv')
+may_df <- clean_bikes('/202205-divvy-tripdata.csv')
+jun_df <- clean_bikes('/202206-divvy-tripdata.csv')
+jul_df <- clean_bikes('/202207-divvy-tripdata.csv')
+aug_df <- clean_bikes('/202208-divvy-tripdata.csv')
+sep_df <- clean_bikes('/202209-divvy-tripdata.csv')
+oct_df <- clean_bikes('/202210-divvy-tripdata.csv')
+nov_df <- clean_bikes('/202211-divvy-tripdata.csv')
+dec_df <- clean_bikes('/202212-divvy-tripdata.csv')
+
+```
+
+We can combine the data by quarter:
+
+```{r}
+# combining data for each month into quarters
+q1_trips_df <- rbind(jan_df, feb_df, mar_df)
+q2_trips_df <- rbind(apr_df, may_df, jun_df)
+q3_trips_df <- rbind(jul_df, aug_df, sep_df)
+q4_trips_df <- rbind(oct_df, nov_df, dec_df)
+```
+
+Then, combine all the quarters to have the data for the year.
+
+```{r}
+all_trips_df <- rbind(q1_trips_df, q2_trips_df, q3_trips_df, q4_trips_df)
+```
+
+We will take a sample of 500 casual members and 500 annual members. Working with 4,000,000 records would be absurd.
+
+```{r}
+  set.seed(1)
+  casual_sample <- all_trips_df %>% filter(member_casual == "casual") %>% sample_n(500)
+  
+  set.seed(1)
+  member_sample <- all_trips_df %>% filter(member_casual == "member") %>% sample_n(500)
+
+```
+
+Table of rideable percentages (member):
+
+```{r}
+    
+    memeber_rideable_count <- member_sample %>% count(rideable_type)
+    data.frame(rideable_type = member_rideable_count$rideable_type, percentage = prop.table(all_trips_casual_rideable_count$n))
+```
+
+Table of rideable percentages (casual):
+
+```{r}
+    casual_rideable_count <- casual_samp %>% count(rideable_type)
+    data.frame(rideable_type = casual_rideable_count$rideable_type, percentage = prop.table(all_trips_casual_rideable_count$n))
+```
+
+Table of rideable percentages (casual, excluding docked bikes):
+
+```{r}
+    all_trips_casual_rideable_count <- casual_samp %>% filter(rideable_type != 'docked_bike')  %>% count(rideable_type)
+    data.frame(rideable_type = all_trips_casual_rideable_count$rideable_type, percentage = prop.table(all_trips_casual_rideable_count$n))
+```
+
+What day do annual memmbers ride during the week?
+
+```{r}
+    member_sample %>% 
+      ggplot(mapping=aes(weekday)) + 
+      geom_bar() + 
+      ggtitle('Weekday Usage for Annual Members') + xlab('Weekday') + 
+      ylab('Number of Riders') + scale_x_discrete(limits=c("Sunday","Monday","Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+```
+
+How about casual riders?
+
+```{r}
+    casual_sample %>% 
+      ggplot(mapping=aes(weekday)) + 
+      geom_bar() + 
+      ggtitle('Weekday Usage for Casual Members') + xlab('Weekday') + 
+      ylab('Number of Riders') + scale_x_discrete(limits=c("Sunday","Monday","Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+```
+
+The time of day annual members ride: 
+
+```{r}
+  member_sample %>% 
+    filter(weekday != "Sunday" & weekday != "Saturday") %>% 
+    ggplot(mapping=aes(hour)) + 
+    geom_line(aes(fill=after_stat(count)),stat="bin",binwidth=1) + 
+    geom_point(aes(fill=after_stat(count)), stat="bin", binwidth=1, show.legend = FALSE) + xlab('Hour') + 
+    ylab('Number of Riders') + ggtitle('Time Started During Weekday', subtitle="For annual members") + 
+    geom_rect(aes(xmin=15, xmax = 19, ymin=25, ymax=50), fill ="yellow", alpha = 0.003) + 
+    geom_rect(aes(xmin=6.5, xmax = 8.5, ymin=18, ymax=35), fill ="yellow", alpha = 0.003)
+```
+
+For casual riders:
+
+```{r}
+  casual_sample %>%
+    filter(weekday != "Sunday" & weekday != "Saturday") %>% 
+    ggplot(mapping=aes(hour)) + 
+    geom_line(aes(fill=after_stat(count)),stat="bin",binwidth=1) + 
+    geom_point(aes(fill=after_stat(count)), stat="bin", binwidth=1, show.legend = FALSE) + 
+    xlab('Hour') + ylab('Number of Riders') + ggtitle('Time Started During Weekday', subtitle="For casual members") +
+    geom_rect(aes(xmin=14, xmax = 20, ymin=15, ymax=40), fill ="yellow", alpha = 0.003)
+
+```
+
+
+
